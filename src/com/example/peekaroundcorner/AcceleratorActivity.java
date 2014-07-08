@@ -39,19 +39,27 @@ public class AcceleratorActivity extends Activity implements SensorEventListener
 	    sensorCard.setText("Accelerator Test");
 	    sensorCard.setFootnote("Sensor Start");
     	setContentView(sensorCard.getView());
+    	/*
+    	 * Create and register for sensors
+    	 */
 	    mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
 	    mAcceleratorSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
 	    mOrientationSensor=mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION);
+	    /*
+	     * Initial location object with current coordinates
+	     */
 	    final Location location=new Location(0,0);
 	    readSensorThread=new Thread(new Runnable(){
-
+	    	/*
+	    	 * Read sensor data per 20ms
+	    	 */
 			@SuppressWarnings("static-access")
 			@Override
 			public void run() {
 				// TODO Auto-generated method stub
 				try {
 					while(true){
-					Thread.currentThread().sleep(100);
+					Thread.currentThread().sleep(20);
 					Message msg=new Message();
 					msg.what=0;
 					mHandler.sendMessage(msg);
@@ -65,6 +73,11 @@ public class AcceleratorActivity extends Activity implements SensorEventListener
 	    	
 	    });
 	    readSensorThread.start();
+	    /*
+	     * Handler message per 20ms
+	     * Transfer sensor data into system coordinate
+	     * Calculate current coordinates
+	     */
 	    mHandler=new Handler(){
 	    	public void handleMessage(Message msg){
 	    		switch(msg.what){
@@ -88,18 +101,31 @@ public class AcceleratorActivity extends Activity implements SensorEventListener
 		
 	}
 	@Override
+	/*
+	 * Read Sensor data when change
+	 * 2 sensor used, need to determine
+	 */
 	public void onSensorChanged(SensorEvent event) {
 		if(event.sensor.getType()==Sensor.TYPE_LINEAR_ACCELERATION){
+			/*
+			 * Read Accelerometer data
+			 */
 			accelerator_x=event.values[0];
 			accelerator_y=event.values[1];
 			accelerator_z=event.values[2];
 		}
 		else if(event.sensor.getType()==Sensor.TYPE_ORIENTATION){
+			/*
+			 * Read orientation data
+			 */
 			orientation=event.values[0];
 		}
 	}
 	protected void onResume() {
         super.onResume();
+        /*
+         * Register for 2 sensors
+         */
         mSensorManager.registerListener(this, mAcceleratorSensor, SensorManager.SENSOR_DELAY_NORMAL);
         mSensorManager.registerListener(this, mOrientationSensor, SensorManager.SENSOR_DELAY_NORMAL);
         Log.v("AcceleratorActivity_onResume", "Sensor_Start");
@@ -109,6 +135,9 @@ public class AcceleratorActivity extends Activity implements SensorEventListener
     protected void onPause() {
      // TODO Auto-generated method stub
      super.onPause();
+     /*
+      * Unregister sensors
+      */
      mSensorManager.unregisterListener(this); 
      readSensorThread.stop();
     }
