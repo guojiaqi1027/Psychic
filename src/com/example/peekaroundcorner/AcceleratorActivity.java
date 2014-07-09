@@ -1,7 +1,11 @@
 /**
  * Accelerator Test activity
+ * Using accelerometer and orientation sensor to calculate location coordinate
  */
 package com.example.peekaroundcorner;
+
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 
 import com.example.peekaroundcorner.navigation.Location;
 import com.google.android.glass.app.Card;
@@ -30,6 +34,7 @@ public class AcceleratorActivity extends Activity implements SensorEventListener
 	
 	private Thread readSensorThread;
 	private Handler mHandler;
+	@SuppressWarnings("deprecation")
 	@SuppressLint({ "InlinedApi", "HandlerLeak" })
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -86,8 +91,9 @@ public class AcceleratorActivity extends Activity implements SensorEventListener
 	    			location.updateSpeed();
 	    			location.updateCoordinate();
 	    			Log.v("AcceleratorActivity_mHandler_handleMessage", String.valueOf(accelerator_x)+" "+String.valueOf(accelerator_y)+" "+String.valueOf(accelerator_z));
-	    			sensorCard.setFootnote(String.valueOf(location.speed_x)+"  "+String.valueOf(location.speed_y));
+	    			//sensorCard.setFootnote(String.valueOf(location.speed_x)+"  "+String.valueOf(location.speed_y));
 	    			//sensorCard.setFootnote(String.valueOf(orientation));
+	    			sensorCard.setFootnote(String.valueOf(location.speed_x)+" "+String.valueOf(location.speed_y));
 	    			setContentView(sensorCard.getView());
 	    		}
 	    	}
@@ -100,6 +106,8 @@ public class AcceleratorActivity extends Activity implements SensorEventListener
 		// TODO Auto-generated method stub
 		
 	}
+	@SuppressWarnings("deprecation")
+	@SuppressLint("NewApi")
 	@Override
 	/*
 	 * Read Sensor data when change
@@ -110,9 +118,17 @@ public class AcceleratorActivity extends Activity implements SensorEventListener
 			/*
 			 * Read Accelerometer data
 			 */
-			accelerator_x=event.values[0];
-			accelerator_y=event.values[1];
-			accelerator_z=event.values[2];
+			DecimalFormat df = new DecimalFormat( "#.0 ");
+			df.setRoundingMode(RoundingMode.HALF_UP);  
+			if(Math.abs(event.values[0])<=0.15){
+				accelerator_x=0;
+			}
+			else accelerator_x=Double.valueOf(df.format(event.values[0]));
+			//accelerator_y=Double.valueOf(df.format(event.values[1]));
+			if(Math.abs(event.values[2])<=0.15){
+				accelerator_z=0;
+			}
+			else accelerator_z=Double.valueOf(df.format(event.values[2]));
 		}
 		else if(event.sensor.getType()==Sensor.TYPE_ORIENTATION){
 			/*
@@ -126,7 +142,7 @@ public class AcceleratorActivity extends Activity implements SensorEventListener
         /*
          * Register for 2 sensors
          */
-        mSensorManager.registerListener(this, mAcceleratorSensor, SensorManager.SENSOR_DELAY_NORMAL);
+        mSensorManager.registerListener(this, mAcceleratorSensor, SensorManager.SENSOR_DELAY_FASTEST);
         mSensorManager.registerListener(this, mOrientationSensor, SensorManager.SENSOR_DELAY_NORMAL);
         Log.v("AcceleratorActivity_onResume", "Sensor_Start");
     }
@@ -137,6 +153,7 @@ public class AcceleratorActivity extends Activity implements SensorEventListener
      super.onPause();
      /*
       * Unregister sensors
+      * Stop handle message
       */
      mSensorManager.unregisterListener(this); 
      readSensorThread.stop();

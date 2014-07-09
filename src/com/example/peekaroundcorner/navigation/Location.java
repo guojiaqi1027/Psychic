@@ -1,4 +1,9 @@
 package com.example.peekaroundcorner.navigation;
+
+import android.annotation.SuppressLint;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
+
 /*
  * Calculate Coordinate from sensor data
  * Using small period of time to calculate current speed and current location
@@ -25,13 +30,16 @@ public class Location {
 		coordinate_x=x;
 		coordinate_y=y;
 	}
+	@SuppressLint("NewApi")
 	public void updateAcceleration(double x,double z,double oren){
 		/*
 		 * Transfer sensor data into x-y coordinate
 		 */
 		orientation=oren;
-		acceleration_x=x*Math.sin((orientation+90)*Math.PI/180)-z*Math.sin(orientation*Math.PI/180);
-		acceleration_y=x*Math.cos((orientation+90)*Math.PI/180)-z*Math.cos(orientation*Math.PI/180);
+		DecimalFormat df = new DecimalFormat( "#.0 ");
+		df.setRoundingMode(RoundingMode.HALF_UP);  
+		acceleration_x=Double.valueOf(df.format(x*Math.sin((orientation+90)*Math.PI/180)-z*Math.sin(orientation*Math.PI/180)));
+		acceleration_y=Double.valueOf(df.format(x*Math.cos((orientation+90)*Math.PI/180)-z*Math.cos(orientation*Math.PI/180)));
 	}
 	public void updateSpeed(){
 		/*
