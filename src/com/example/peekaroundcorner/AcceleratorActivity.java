@@ -6,9 +6,6 @@ package com.example.peekaroundcorner;
 
 import java.io.IOException;
 import java.math.RoundingMode;
-import java.text.DecimalFormat;
-
-import com.example.peekaroundcorner.navigation.Location;
 import com.example.peekaroundcorner.navigation.User;
 import com.example.peekaroundcorner.socket.Client;
 import com.google.android.glass.app.Card;
