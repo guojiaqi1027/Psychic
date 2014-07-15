@@ -2,7 +2,7 @@
  * Build up the information of camera network
  * Using ID and URL to identify and catch the video stream
  **/
-package com.example.peekaroundcorner.camera;
+package com.example.peekaroundcorner.navigation;
 public class Camera {
 
 	private String cameraID;

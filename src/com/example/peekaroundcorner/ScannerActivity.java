@@ -4,7 +4,7 @@ package com.example.peekaroundcorner;
  */
 import java.util.ArrayList;
 
-import com.example.peekaroundcorner.camera.Camera;
+import com.example.peekaroundcorner.navigation.Camera;
 import com.google.android.glass.app.Card;
 import com.google.android.glass.media.Sounds;
 import com.google.android.glass.touchpad.Gesture;

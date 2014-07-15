@@ -31,6 +31,7 @@ public class Client {
             try{
                 PrintWriter out = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()), true);
                 out.println(request);
+                out.flush();
             } catch (IOException ex){
                 ex.printStackTrace();
             }
