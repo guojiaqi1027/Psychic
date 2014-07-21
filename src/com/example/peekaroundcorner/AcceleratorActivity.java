@@ -6,6 +6,8 @@ package com.example.peekaroundcorner;
 
 import java.io.IOException;
 import java.math.RoundingMode;
+import java.net.Socket;
+
 import com.example.peekaroundcorner.navigation.User;
 import com.example.peekaroundcorner.socket.Client;
 import com.google.android.glass.app.Card;
@@ -35,10 +37,11 @@ public class AcceleratorActivity extends Activity implements SensorEventListener
 	private Sensor mAccelerometerSensor;
 	private Sensor mRotateSensor;
 	private User mUser;
+	private Client clientSocket;
 	private Thread readSensorThread;
 	private Thread orientationSend;
 	private Thread loginThread;
-	private Thread initialThread;
+	private Thread connectThread;
 	private Handler mHandler;
 	private boolean isInitialed=false;
 	private boolean sensorThreadOn=true;
@@ -59,6 +62,7 @@ public class AcceleratorActivity extends Activity implements SensorEventListener
 	    sensorCard.setText("Accelerator Test");
 	    sensorCard.setFootnote("Sensor Start");
     	setContentView(sensorCard.getView());
+    	sensorCard.getView().setKeepScreenOn(true);
     	mUser=new User("Gawain");
     	/*
     	 * Create and register for sensors
@@ -68,6 +72,10 @@ public class AcceleratorActivity extends Activity implements SensorEventListener
 	    mAccelerometerSensor=mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 	   mOrientationSensor=mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION);
 	   mRotateSensor=mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+	   
+	   /*
+	    * Create location manager
+	    */
 	   mLocationManager=(LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 	   mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, this);
 	    /*
@@ -97,22 +105,36 @@ public class AcceleratorActivity extends Activity implements SensorEventListener
 			}
 	    	
 	    });
-	    readSensorThread.start();
+	    connectThread=new Thread(new Runnable(){
+	    	/*
+	    	 * Connecting Socket with server
+	    	 */
+			@SuppressWarnings("static-access")
+			@Override
+			public void run() {
+				// TODO Auto-generated method stub
+				clientSocket=new Client("192.168.206.205",8000);
+				try {
+					clientSocket.BuildUpConnection();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				Message msg=new Message();
+				msg.what=3;
+				mHandler.sendMessage(msg);
+				
+			}
+	    	
+	    });
+	    connectThread.start();
 	    /*
 	     * Send orientation data to server
 	     */
 	    orientationSend=new Thread(new Runnable(){
 			@Override
 			public void run() {
-				Client c=new Client("192.168.206.205",8000);
-    			try {
-					c.BuildUpConnection();
-					c.messageSend("ORI"+"#"+String.valueOf(mUser.orientation));
-					c.closeConnection();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+    			clientSocket.messageSend("ORI"+"#"+String.valueOf(mUser.orientation));
 				
 			}
 	    	
@@ -120,18 +142,15 @@ public class AcceleratorActivity extends Activity implements SensorEventListener
 	    loginThread=new Thread(new Runnable(){
 			@Override
 			public void run() {
-				Client c=new Client("192.168.206.205",8000);
 				boolean login=false;
     			try {
     				/*
     				 * Scanning User name until login
     				 */
 					while(!login){
-    				c.BuildUpConnection();
-					c.messageSend("LOGIN#"+mUser.userName);
+					clientSocket.messageSend("LOGIN#"+mUser.userName);
 					Log.v("ORIENTATIONACTIVITY_LOGINTHREAD", "LOGIN#"+mUser.userName);
-					String result=c.messageReceive();
-					c.closeConnection();
+					String result=clientSocket.messageReceive();
 					if(result.equals("true")){
 						login=true;
 					}
@@ -139,10 +158,8 @@ public class AcceleratorActivity extends Activity implements SensorEventListener
 					/*
 					 * Scanning initial coordinate
 					 */
-					c.BuildUpConnection();
-					c.messageSend("INI#0#0");
+					clientSocket.messageSend("INI#0#0");
 					Log.v("ORIENTATIONACTIVITY_LOGINTHREAD", "INI#0#0");
-					c.closeConnection();
 					Message msg=new Message();
 					msg.what=1;
 					mHandler.sendMessage(msg);
@@ -155,7 +172,6 @@ public class AcceleratorActivity extends Activity implements SensorEventListener
 			}
 	    	
 	    });
-	   loginThread.start();
 	    /*
 	     * Handler message per 20ms
 	     * Start sending thread, send data to server per 20ms
@@ -175,6 +191,11 @@ public class AcceleratorActivity extends Activity implements SensorEventListener
 	    		case 1:
 	    			isInitialed=true;
 	    			break;
+	    		case 3:
+	    			loginThread.start();
+	    			readSensorThread.start();
+	    			break;
+	    			
 	    		}
 	    	}
 	    };
@@ -193,16 +214,6 @@ public class AcceleratorActivity extends Activity implements SensorEventListener
 	 * Read Sensor data when change
 	 */
 	public void onSensorChanged(SensorEvent event) {
-		/*if(event.sensor.getType()==Sensor.TYPE_MAGNETIC_FIELD){
-			magneticFieldValues = event.values.clone();  
-		}
-		else if(event.sensor.getType()==Sensor.TYPE_ACCELEROMETER){
-			accelerometerValues = event.values.clone();
-		}
-		mUser.orientation=calculateOrientation();*/
-		/*if(event.sensor.getType()==Sensor.TYPE_ORIENTATION){
-			mUser.orientation=event.values[0];
-		}*/
 		if (event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
             // Get the current heading from the sensor, then notify the listeners of the
             // change.
@@ -210,13 +221,19 @@ public class AcceleratorActivity extends Activity implements SensorEventListener
             SensorManager.remapCoordinateSystem(mRotationMatrix, SensorManager.AXIS_X,
                     SensorManager.AXIS_Z, mRotationMatrix);
             SensorManager.getOrientation(mRotationMatrix, mOrientation);
+            /*
+             * Compute head orientation with sensor and location provider
+             */
             float mHeading=(float)Math.toDegrees(mOrientation[0]);
-            mUser.orientation=mod(computeTrueNorth(mHeading),360.f)-6;
+            mUser.orientation=((int)(mod(computeTrueNorth(mHeading),360.f)-6)/5)*5;
 		}
 	}
 	public float mod(float a, float b) {
         return (a % b + b) % b;
     }
+	/*
+	 * Compute real orientation combine with location and sensor
+	 */
 	private float computeTrueNorth(float heading) {
         if (mGeomagneticField != null) {
             return heading + mGeomagneticField.getDeclination();
@@ -224,19 +241,10 @@ public class AcceleratorActivity extends Activity implements SensorEventListener
             return heading;
         }
     }
-	public float calculateOrientation(){
-		float[] values = new float[3];  
-        float[] R = new float[9];  
-        float[] I=new float[9];
-        SensorManager.getRotationMatrix(R, I, accelerometerValues, magneticFieldValues);           
-        SensorManager.getOrientation(R, values);  
-        values[0] = (float) Math.toDegrees(values[0]);  
-        return values[0];
-	}
 	protected void onResume() {
         super.onResume();
         /*
-         * Register for 2 sensors
+         * Register for sensors
          */
         mSensorManager.registerListener(this, mMagneticSensor, SensorManager.SENSOR_DELAY_NORMAL);
         mSensorManager.registerListener(this, mAccelerometerSensor, SensorManager.SENSOR_DELAY_NORMAL);
@@ -256,7 +264,9 @@ public class AcceleratorActivity extends Activity implements SensorEventListener
      mSensorManager.unregisterListener(this); 
      sensorThreadOn=false;
     }
-    
+    /*
+     * when location changed, update geomagnetic field
+     */
 	@Override
 	public void onLocationChanged(Location location) {
 		mLocation = location;
@@ -278,6 +288,9 @@ public class AcceleratorActivity extends Activity implements SensorEventListener
 		// TODO Auto-generated method stub
 		
 	}
+	/*
+	 * Get geomagneticfield information when location change
+	 */
 	public void updateGeomagneticField(){
 		mGeomagneticField = new GeomagneticField((float) mLocation.getLatitude(),
                 (float) mLocation.getLongitude(), (float) mLocation.getAltitude(),

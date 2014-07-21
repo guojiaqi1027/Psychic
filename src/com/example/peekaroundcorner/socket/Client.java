@@ -11,35 +11,39 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
 
+import android.util.Log;
+
 public class Client {
     
     private String host;
     private int port; 
     private Socket clientSocket;
+    PrintWriter out;
+    BufferedReader in;
+    
     //constructor, initialize host, port and request 
     public Client(String host, int port){
         this.host=host;
         this.port=port;
+        
     }
     public void BuildUpConnection() throws IOException{
     	clientSocket = new Socket(host, port);
+    	 out= new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()), true);
+    	 in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
     }
 
         
     // send "request" to Server
     public void messageSend(String request){
-            try{
-                PrintWriter out = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()), true);
-                out.println(request);
-                out.flush();
-            } catch (IOException ex){
-                ex.printStackTrace();
-            }
+            out.println(request);
+			out.flush();
+			Log.v("Socket_messageSend", request);
         
         
     }
     public String messageReceive() throws IOException{
-    	BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+    	
         String s = in.readLine();
         System.out.println(s);  
         return s;

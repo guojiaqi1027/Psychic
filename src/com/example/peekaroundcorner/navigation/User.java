@@ -7,7 +7,7 @@ public class User {
 	/*
 	 * User current orientation
 	 */
-	public float orientation;
+	public int orientation;
 	/*
 	 * Create with user name
 	 */
