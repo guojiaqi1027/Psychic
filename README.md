@@ -1,5 +1,6 @@
-Psychic
+Psychic 
 =======
+Client Side app in Google Glass
 Psychic-Peek around corner by Google Glass
 Develop by Ruters Winlab 
 Developer List:
@@ -7,5 +8,4 @@ Developer List:
 @TINGYU CHEN
 @ZHIYANG WANG
 @NAIXUAN MA
-=======
-This project is the glass client
+
