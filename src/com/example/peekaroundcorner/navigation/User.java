@@ -4,11 +4,11 @@ package com.example.peekaroundcorner.navigation;
  */
 public class User {
 	public String userName;
-	/*
+	/**
 	 * User current orientation
 	 */
 	public int orientation;
-	/*
+	/**
 	 * Create with user name
 	 */
 	public User(String name){

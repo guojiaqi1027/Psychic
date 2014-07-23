@@ -26,10 +26,12 @@ or to a theme attribute in the form "<code>?[<i>package</i>:][<i>type</i>:]<i>na
     }
     public static final class id {
         public static final int rtsp_video=0x7f080000;
+        public static final int text=0x7f080001;
     }
     public static final class layout {
         public static final int main_activity=0x7f030000;
         public static final int menu_activity=0x7f030001;
+        public static final int test_layout=0x7f030002;
     }
     public static final class string {
         public static final int app_name=0x7f060000;
